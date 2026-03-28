@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicGuard — Authority Portal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+:root{
+  --bg:#080a0d;--surface:#0f1318;--surface2:#161c22;--surface3:#1c2330;
+  --border:#1a2232;--border2:#243040;--border3:#2e3d52;
+  --text:#d0dce8;--text2:#637585;--text3:#364a5e;
+  --accent:#00e5ff;--accent-dim:rgba(0,229,255,0.07);--accent-glow:rgba(0,229,255,0.18);
+  --red:#ff3b3b;--red-dim:rgba(255,59,59,0.1);
+  --green:#00e090;--green-dim:rgba(0,224,144,0.08);
+  --amber:#ffb800;--amber-dim:rgba(255,184,0,0.08);
+  --purple:#a78bfa;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+  --r:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;}
+
+/* ═══════════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════════ */
+#authScreen{
+  position:fixed;inset:0;display:flex;
+  align-items:stretch;z-index:1000;
+  background:var(--bg);
+}
+
+/* Left decorative panel */
+.auth-left{
+  flex:1;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#0a1018 0%,#0d1520 100%);
+  border-right:1px solid var(--border2);
+  display:flex;flex-direction:column;justify-content:flex-end;padding:48px;
+}
+.auth-left-bg{
+  position:absolute;inset:0;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 30% 50%, rgba(0,229,255,0.06) 0%, transparent 60%),
+    linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);
+  background-size:100% 100%,32px 32px,32px 32px;
+}
+.auth-left-orb{
+  position:absolute;top:20%;left:30%;
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,255,0.08) 0%,transparent 70%);
+  animation:orbFloat 8s ease-in-out infinite;
+}
+@keyframes orbFloat{
+  0%,100%{transform:translate(0,0) scale(1);}
+  50%{transform:translate(20px,-30px) scale(1.05);}
+}
+.auth-left-tag{
+  position:relative;z-index:1;
+  font-family:var(--mono);font-size:9px;letter-spacing:0.24em;
+  color:rgba(0,229,255,0.5);margin-bottom:16px;
+}
+.auth-left-title{
+  position:relative;z-index:1;
+  font-size:32px;font-weight:300;color:var(--text);line-height:1.2;margin-bottom:10px;
+}
+.auth-left-title strong{color:var(--accent);font-weight:700;}
+.auth-left-desc{
+  position:relative;z-index:1;
+  font-size:13px;color:var(--text2);line-height:1.7;max-width:360px;
+}
+.auth-left-features{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;gap:10px;margin-top:28px;
+}
+.auth-left-feat{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.06em;
+}
+.feat-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:0.5;flex-shrink:0;}
+.auth-left-feat.active .feat-dot{opacity:1;box-shadow:0 0 8px rgba(0,229,255,0.6);}
+.auth-left-feat.active{color:var(--text2);}
+
+/* Right auth form panel */
+.auth-right{
+  width:440px;flex-shrink:0;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:48px 44px;
+  background:var(--surface);
+  overflow-y:auto;
+}
+.auth-logo{
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.22em;
+  color:var(--accent);display:flex;align-items:center;gap:9px;margin-bottom:36px;
+}
+.auth-logo-dot{
+  width:9px;height:9px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 12px rgba(0,229,255,0.7);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.65)}}
+
+.auth-heading{font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.auth-subheading{font-size:13px;color:var(--text2);margin-bottom:32px;line-height:1.5;}
+
+/* Tabs */
+.auth-tabs{
+  display:flex;border:1px solid var(--border2);border-radius:5px;
+  overflow:hidden;background:var(--bg);margin-bottom:28px;
+}
+.auth-tab{
+  flex:1;padding:10px 0;background:none;border:none;
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.14em;
+  cursor:pointer;color:var(--text3);transition:all 0.2s;
+}
+.auth-tab.active{color:var(--accent);background:var(--accent-dim);}
+.auth-tab:not(.active):hover{color:var(--text2);background:var(--surface2);}
+
+/* Fields */
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
+.field label{
+  font-family:var(--mono);font-size:8px;letter-spacing:0.18em;
+  color:var(--text3);text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.field-req{color:var(--accent);font-size:10px;}
+.field input{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:4px;
+  color:var(--text);font-family:var(--sans);font-size:14px;
+  padding:12px 14px;outline:none;width:100%;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.field input:focus{border-color:rgba(0,229,255,0.35);box-shadow:0 0 0 3px rgba(0,229,255,0.05);}
+.field input.err{border-color:rgba(255,59,59,0.5);}
+.field input::placeholder{color:var(--text3);}
+.field-hint{font-family:var(--mono);font-size:9px;color:var(--text3);line-height:1.5;}
+
+/* Banner */
+.auth-banner{
+  display:none;padding:10px 14px;border-radius:4px;
+  font-size:12px;line-height:1.5;margin-bottom:16px;
+}
+.auth-banner.err{display:block;background:var(--red-dim);border:1px solid rgba(255,59,59,0.3);color:#ffb0b0;}
+.auth-banner.ok{display:block;background:var(--green-dim);border:1px solid rgba(0,224,144,0.3);color:#80ffd4;}
+
+/* Submit button */
+.auth-submit{
+  width:100%;padding:13px;
+  background:var(--accent-dim);
+  border:1px solid rgba(0,229,255,0.3);
+  border-radius:4px;color:var(--accent);
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.16em;
+  cursor:pointer;transition:all 0.2s;margin-top:4px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.auth-submit:hover{background:rgba(0,229,255,0.12);box-shadow:0 0 20px rgba(0,229,255,0.1);}
+.auth-submit:disabled{opacity:0.4;cursor:not-allowed;}
+
+.fsec{display:none;}
+.fsec.on{display:block;}
+
+/* Back link */
+.auth-back{
+  font-family:var(--mono);font-size:9px;color:var(--text3);
+  letter-spacing:0.1em;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  transition:color 0.2s;margin-bottom:32px;
+}
+.auth-back:hover{color:var(--accent);}
+
+@media(max-width:768px){
+  .auth-left{display:none;}
+  .auth-right{width:100%;padding:36px 28px;}
+}
+
+
+/* ═══════════════════════════════════════════
+   MAIN APP (hidden until auth)
+═══════════════════════════════════════════ */
+#appScreen{display:none;height:100%;flex-direction:column;}
+#appScreen.visible{display:flex;}
+
+/* ── NAV ── */
+nav{
+  height:56px;flex-shrink:0;
+  background:rgba(15,19,24,0.96);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;z-index:50;position:relative;
+}
+.nav-logo{
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.2em;
+  color:var(--accent);display:flex;align-items:center;gap:8px;
+}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s ease-in-out infinite;}
+.nav-tabs{display:flex;gap:3px;}
+.nav-tab{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.1em;
+  padding:6px 12px;border-radius:4px;cursor:pointer;
+  border:1px solid transparent;background:none;color:var(--text3);transition:all 0.18s;
+}
+.nav-tab:hover{color:var(--text);background:var(--surface2);border-color:var(--border);}
+.nav-tab.active{color:var(--accent);background:var(--accent-dim);border-color:rgba(0,229,255,0.2);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+
+.ws-pill{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.08em;
+}
+.ws-dot{width:5px;height:5px;border-radius:50%;background:var(--text3);}
+.ws-dot.live{background:var(--green);box-shadow:0 0 5px rgba(0,224,144,0.5);}
+
+.user-chip{
+  display:flex;align-items:center;gap:7px;
+  padding:4px 12px 4px 5px;
+  border:1px solid var(--border2);border-radius:20px;background:var(--surface2);
+}
+.user-avatar{
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(255,184,0,0.12);border:1px solid rgba(255,184,0,0.3);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;font-weight:700;color:var(--amber);
+}
+.user-name{font-family:var(--mono);font-size:10px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.user-role-badge{
+  font-family:var(--mono);font-size:8px;padding:2px 6px;border-radius:2px;
+  background:rgba(255,184,0,0.1);border:1px solid rgba(255,184,0,0.3);color:var(--amber);letter-spacing:0.08em;
+}
+.logout-btn{
+  font-family:var(--mono);font-size:9px;letter-spacing:0.1em;
+  padding:5px 10px;border:1px solid var(--border2);border-radius:3px;
+  background:none;color:var(--text3);cursor:pointer;transition:all 0.2s;
+}
+.logout-btn:hover{color:var(--red);border-color:rgba(255,59,59,0.4);background:var(--red-dim);}
+
+/* ── FILTER BAR ── */
+.filter-bar{
+  height:48px;flex-shrink:0;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:8px;flex-wrap:nowrap;overflow-x:auto;
+}
+.filter-bar::-webkit-scrollbar{display:none;}
+.fb-btn{
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;
+  padding:6px 13px;border-radius:3px;cursor:pointer;
+  border:1px solid var(--border2);background:none;color:var(--text3);
+  transition:all 0.18s;white-space:nowrap;display:flex;align-items:center;gap:5px;
+  flex-shrink:0;
+}
+.fb-btn:hover{color:var(--text);background:var(--surface2);}
+.fb-btn.fa{color:var(--accent);border-color:rgba(0,229,255,0.4);background:var(--accent-dim);}
+.fb-btn.fo{color:var(--red);border-color:rgba(255,59,59,0.4);background:var(--red-dim);}
+.fb-btn.fm{color:var(--amber);border-color:rgba(255,184,0,0.4);background:var(--amber-dim);}
+.fb-btn.fc{color:var(--green);border-color:rgba(0,224,144,0.4);background:var(--green-dim);}
+.fb-count{font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(255,255,255,0.06);}
+.filter-sep{width:1px;height:20px;background:var(--border2);flex-shrink:0;}
+.filter-stats{margin-left:auto;display:flex;gap:18px;flex-shrink:0;}
+.fstat{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.05em;}
+.fstat span{color:var(--text2);}
+
+/* ── MAIN LAYOUT ── */
+.app-body{flex:1;display:flex;overflow:hidden;position:relative;}
+
+/* ── MAP ── */
+#map{flex:1;min-width:0;z-index:1;}
+/* Override leaflet tooltip to match theme */
+.leaflet-tooltip{
+  background:var(--surface2)!important;border:1px solid var(--border2)!important;
+  color:var(--text)!important;font-family:var(--mono)!important;font-size:10px!important;
+  border-radius:4px!important;padding:6px 10px!important;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4)!important;
+}
+.leaflet-tooltip-left::before,.leaflet-tooltip-right::before{display:none!important;}
+
+/* ── SIDE PANEL ── */
+.side-panel{
+  width:340px;flex-shrink:0;border-left:1px solid var(--border);
+  background:var(--surface);display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.panel-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.18em;color:var(--text3);}
+.panel-count{font-family:var(--mono);font-size:9px;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);padding:2px 8px;border-radius:10px;}
+.issue-list{flex:1;overflow-y:auto;}
+.issue-list::-webkit-scrollbar{width:3px;}
+.issue-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.issue-item{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background 0.15s;position:relative;
+}
+.issue-item:hover{background:var(--surface2);}
+.issue-item.selected{background:var(--surface2);}
+.issue-item.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);}
+.ii-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.ii-title{font-size:12px;font-weight:500;color:var(--text);line-height:1.35;flex:1;}
+.sb{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.1em;padding:2px 6px;border-radius:2px;border:1px solid currentColor;flex-shrink:0;white-space:nowrap;}
+.sb.OPEN{color:var(--red);}
+.sb.UNDER_APPROVAL{color:var(--amber);}
+.sb.CLOSED,.sb.RESOLVED{color:var(--green);}
+.ii-meta{font-family:var(--mono);font-size:9px;color:var(--text3);display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ── DETAIL PANE ── */
+.detail-pane{
+  position:absolute;right:340px;top:0;bottom:0;width:380px;
+  background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);
+  overflow-y:auto;z-index:10;
+  transform:translateX(100%);transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+}
+.detail-pane.open{transform:translateX(0);}
+.detail-pane::-webkit-scrollbar{width:3px;}
+.detail-pane::-webkit-scrollbar-thumb{background:var(--border2);}
+
+.dp-header{
+  padding:16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:10px;
+  position:sticky;top:0;background:var(--surface);z-index:2;
+}
+.dp-back{
+  background:none;border:1px solid var(--border2);border-radius:3px;
+  color:var(--text3);font-family:var(--mono);font-size:9px;padding:5px 9px;
+  cursor:pointer;transition:all 0.2s;flex-shrink:0;margin-top:2px;
+}
+.dp-back:hover{color:var(--text);background:var(--surface2);}
+.dp-title{font-size:14px;font-weight:500;color:var(--text);line-height:1.35;flex:1;}
+.dp-body{padding:20px;display:flex;flex-direction:column;gap:18px;}
+.dp-section{display:flex;flex-direction:column;gap:6px;}
+.dp-lbl{font-family:var(--mono);font-size:8px;letter-spacing:0.16em;color:var(--text3);text-transform:uppercase;}
+.dp-val{font-size:13px;color:var(--text2);line-height:1.6;}
+.dp-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.dp-meta-item{display:flex;flex-direction:column;gap:3px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;}
+.dp-meta-key{font-family:var(--mono);font-size:8px;letter-spacing:0.12em;color:var(--text3);}
+.dp-meta-val{font-family:var(--mono);font-size:11px;color:var(--text2);}
+.dp-images{display:flex;gap:6px;flex-wrap:wrap;}
+.dp-img{width:80px;height:80px;object-fit:cover;border-radius:4px;border:1px solid var(--border2);cursor:pointer;transition:border-color 0.2s;}
+.dp-img:hover{border-color:var(--accent);}
+.dp-no-img{font-family:var(--mono);font-size:9px;color:var(--text3);padding:10px 0;}
+
+/* Action buttons */
+.action-area{display:flex;flex-direction:column;gap:8px;padding:4px 0;}
+.action-btn{
+  width:100%;padding:12px;border-radius:4px;
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.14em;
+  cursor:pointer;transition:all 0.2s;
+}
+.action-btn.resolve{
+  background:var(--green-dim);border:1px solid rgba(0,224,144,0.35);color:var(--green);
+}
+.action-btn.resolve:hover{background:rgba(0,224,144,0.14);}
+.action-btn.close{
+  background:var(--accent-dim);border:1px solid rgba(0,229,255,0.3);color:var(--accent);
+}
+.action-btn.close:hover{background:rgba(0,229,255,0.12);}
+.action-status{
+  font-family:var(--mono);font-size:10px;color:var(--text3);
+  text-align:center;padding:10px;border:1px solid var(--border);border-radius:4px;
+}
+
+/* ── RESOLVE MODAL ── */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;
+  z-index:500;
+}
+.modal{
+  width:460px;max-height:90vh;overflow-y:auto;
+  background:var(--surface);border:1px solid var(--border2);border-radius:8px;
+  padding:28px;display:flex;flex-direction:column;gap:16px;position:relative;
+}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,224,144,0.5),transparent);}
+.modal-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.16em;color:var(--green);display:flex;align-items:center;gap:7px;}
+.modal-banner{display:none;padding:9px 12px;border-radius:4px;font-size:12px;line-height:1.5;}
+.modal-banner.err{display:block;background:var(--red-dim);border:1px solid rgba(255,59,59,0.3);color:#ffb0b0;}
+.modal-banner.ok{display:block;background:var(--green-dim);border:1px solid rgba(0,224,144,0.3);color:#80ffd4;}
+.modal .field{margin-bottom:0;}
+.modal .field label{margin-bottom:7px;}
+.modal .field input{font-size:13px;}
+textarea.ta{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:4px;
+  color:var(--text);font-family:var(--sans);font-size:13px;
+  padding:11px 14px;outline:none;width:100%;resize:none;min-height:90px;line-height:1.55;
+  transition:border-color 0.2s;
+}
+textarea.ta:focus{border-color:rgba(0,229,255,0.3);}
+.upload-area{
+  border:2px dashed var(--border2);border-radius:4px;padding:18px;
+  text-align:center;cursor:pointer;transition:all 0.2s;position:relative;
+}
+.upload-area:hover{border-color:rgba(0,224,144,0.4);background:var(--green-dim);}
+.upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-lbl{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.1em;}
+.preview-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.prev-img{width:56px;height:56px;object-fit:cover;border-radius:3px;border:1px solid var(--border2);}
+.modal-actions{display:flex;gap:8px;margin-top:4px;}
+.btn-cancel{
+  flex:1;background:none;border:1px solid var(--border2);color:var(--text2);
+  font-family:var(--mono);font-size:10px;letter-spacing:0.1em;
+  padding:11px;border-radius:4px;cursor:pointer;transition:all 0.18s;
+}
+.btn-cancel:hover{color:var(--text);background:var(--surface2);}
+.btn-submit{
+  flex:2;background:var(--green-dim);border:1px solid rgba(0,224,144,0.35);color:var(--green);
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.14em;
+  padding:11px;border-radius:4px;cursor:pointer;transition:all 0.2s;
+}
+.btn-submit:hover{background:rgba(0,224,144,0.14);}
+.btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* ── EMPTY / LIST VIEW ── */
+.list-view{display:none;flex:1;overflow-y:auto;padding:24px;}
+.list-view.visible{display:block;}
+.list-view::-webkit-scrollbar{width:4px;}
+.list-view::-webkit-scrollbar-thumb{background:var(--border2);}
+.lv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;}
+
+.lv-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:18px 20px;display:flex;flex-direction:column;gap:10px;
+  transition:all 0.2s;cursor:pointer;
+}
+.lv-card:hover{border-color:var(--border2);background:var(--surface2);transform:translateY(-1px);}
+.lv-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.lv-title{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;flex:1;}
+.lv-desc{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.lv-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.lv-meta-item{font-family:var(--mono);font-size:9px;color:var(--text3);}
+.lv-meta-item span{color:var(--text2);}
+.lv-region{font-family:var(--mono);font-size:9px;color:var(--text3);display:flex;align-items:center;gap:4px;}
+.lv-region span{color:rgba(0,229,255,0.5);}
+
+.cat-icon{display:inline;}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;}
+.es-icon{font-size:32px;margin-bottom:14px;opacity:0.4;}
+.es-title{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.12em;margin-bottom:8px;}
+.es-sub{font-size:13px;color:var(--text3);}
+
+/* ── RESOLUTION INFO BOX ── */
+.resolution-box{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:4px;
+  padding:14px;display:flex;flex-direction:column;gap:8px;
+}
+.resolution-box-title{font-family:var(--mono);font-size:8px;letter-spacing:0.14em;color:var(--green);text-transform:uppercase;}
+.resolution-box-note{font-size:12px;color:var(--text2);line-height:1.5;}
+
+@media(max-width:960px){
+  .side-panel{display:none;}
+  .detail-pane{right:0;width:100%;}
+}
+@media(max-width:640px){
+  .filter-stats{display:none;}
+  .auth-left{display:none;}
+  .auth-right{width:100%;padding:32px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════════ -->
+<div id="authScreen">
+
+  <!-- Left decorative -->
+  <div class="auth-left">
+    <div class="auth-left-bg"></div>
+    <div class="auth-left-orb"></div>
+    <div class="auth-left-tag">CIVICGUARD AUTHORITY PORTAL</div>
+    <div class="auth-left-title">Manage civic<br>issues <strong>at scale.</strong></div>
+    <div class="auth-left-desc">A secure command centre for government officials to action, resolve, and track civic complaints in real time.</div>
+    <div class="auth-left-features">
+      <div class="auth-left-feat active"><div class="feat-dot"></div>Interactive live map of all issues</div>
+      <div class="auth-left-feat active"><div class="feat-dot"></div>One-click resolve & approval workflow</div>
+      <div class="auth-left-feat active"><div class="feat-dot"></div>Filter by region, category, status</div>
+      <div class="auth-left-feat"><div class="feat-dot"></div>Real-time WebSocket updates</div>
+      <div class="auth-left-feat"><div class="feat-dot"></div>Department-level access control</div>
+    </div>
+  </div>
+
+  <!-- Right form panel -->
+  <div class="auth-right">
+    <a class="auth-back" href="/">← Back to Dashboard</a>
+    <div class="auth-logo"><div class="auth-logo-dot"></div>CIVICGUARD</div>
+    <div class="auth-heading">Welcome back</div>
+    <div class="auth-subheading">Sign in to your authority account or register with an invite code.</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="authTab('login')">SIGN IN</button>
+      <button class="auth-tab" onclick="authTab('signup')">REGISTER</button>
+    </div>
+
+    <div class="auth-banner" id="authBanner"></div>
+
+    <!-- LOGIN FORM -->
+    <div class="fsec on" id="fsLogin">
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="lEmail" placeholder="you@authority.gov.in" onkeydown="ke(event,doLogin)"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="lPw" placeholder="Your password" onkeydown="ke(event,doLogin)"/>
+      </div>
+      <button class="auth-submit" id="lBtn" onclick="doLogin()">SIGN IN →</button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div class="fsec" id="fsSignup">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="sName" placeholder="e.g. Priya Sharma" onkeydown="ke(event,doSignup)"/>
+      </div>
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="sEmail" placeholder="you@authority.gov.in" onkeydown="ke(event,doSignup)"/>
+      </div>
+      <div class="field">
+        <label>Password <span style="font-family:var(--sans);font-size:9px;color:var(--text3);font-weight:400;letter-spacing:0;">min. 6 characters</span></label>
+        <input type="password" id="sPw" placeholder="Choose a strong password" onkeydown="ke(event,doSignup)"/>
+      </div>
+      <div class="field">
+        <label>Authority Invite Code <span class="field-req">*</span></label>
+        <input type="text" id="sCode" placeholder="AUTH-DEMO-2024" style="font-family:var(--mono);text-transform:uppercase;letter-spacing:0.1em;" oninput="this.value=this.value.toUpperCase()" onkeydown="ke(event,doSignup)"/>
+        <div class="field-hint">Contact your department admin if you don't have a code.</div>
+      </div>
+      <button class="auth-submit" id="sBtn" onclick="doSignup()">CREATE ACCOUNT →</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════ -->
+<div id="appScreen">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo"><div class="nav-dot"></div>CIVICGUARD <span style="font-weight:300;font-size:10px;letter-spacing:0.1em;margin-left:4px;color:var(--text3);">AUTHORITY</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tabMap" onclick="switchView('map')">🗺 Map</button>
+      <button class="nav-tab" id="tabList" onclick="switchView('list')">📋 List</button>
+    </div>
+    <div class="nav-right">
+      <div class="ws-pill"><div class="ws-dot" id="wsDot"></div><span id="wsLabel">CONNECTING</span></div>
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <span class="user-name" id="userName">—</span>
+        <span class="user-role-badge">AUTHORITY</span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
+    </div>
+  </nav>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <button class="fb-btn fa" id="fba" onclick="applyFilter('all')">All <span class="fb-count" id="fca">0</span></button>
+    <button class="fb-btn" id="fbo" onclick="applyFilter('OPEN')">🔴 Open <span class="fb-count" id="fco">0</span></button>
+    <button class="fb-btn" id="fbm" onclick="applyFilter('UNDER_APPROVAL')">🟡 Approval <span class="fb-count" id="fcm">0</span></button>
+    <button class="fb-btn" id="fbc" onclick="applyFilter('CLOSED')">🟢 Resolved <span class="fb-count" id="fcc">0</span></button>
+    <div class="filter-sep"></div>
+    <div class="filter-stats">
+      <div class="fstat">REGIONS <span id="fsRegions">—</span></div>
+      <div class="fstat">TOTAL <span id="fsTotal">—</span></div>
+    </div>
+  </div>
+
+  <!-- APP BODY -->
+  <div class="app-body" id="appBody">
+
+    <!-- Map view (default) -->
+    <div id="map"></div>
+
+    <!-- List view (toggled) -->
+    <div class="list-view" id="listView">
+      <div class="lv-grid" id="lvGrid"></div>
+    </div>
+
+    <!-- Side issue list -->
+    <div class="side-panel">
+      <div class="panel-header">
+        <span class="panel-title">ISSUES</span>
+        <span class="panel-count" id="panelCount">0</span>
+      </div>
+      <div class="issue-list" id="issueList"></div>
+    </div>
+
+  </div>
+
+  <!-- Detail Pane (slides in over the list from the right) -->
+  <div class="detail-pane" id="detailPane">
+    <div class="dp-header">
+      <button class="dp-back" onclick="closeDetail()">← Back</button>
+      <div class="dp-title" id="dpTitle"></div>
+    </div>
+    <div class="dp-body" id="dpBody"></div>
+  </div>
+
+</div>
+
+<!-- ── RESOLVE MODAL ── -->
+<div class="modal-backdrop" id="resolveModal" style="display:none;" onclick="if(event.target===this)closeResolveModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">✓ Mark as Resolved</div>
+    <div class="modal-banner" id="resolveBanner"></div>
+    <div class="field">
+      <label>Resolution Note <span style="color:var(--accent);font-size:10px;">*</span></label>
+      <textarea class="ta" id="resolveNote" placeholder="Describe what action was taken to fix this issue…" maxlength="500"></textarea>
+    </div>
+    <div class="field">
+      <label>Proof Photos (optional)</label>
+      <div class="upload-area" onclick="document.getElementById('rimgInput').click()">
+        <input type="file" id="rimgInput" accept="image/*" multiple onchange="previewResolveImages(this)"/>
+        <div class="upload-lbl">📷 CLICK TO UPLOAD PROOF PHOTOS</div>
+      </div>
+      <div class="preview-row" id="resolvePreview"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeResolveModal()">CANCEL</button>
+      <button class="btn-submit" id="resolveSubmitBtn" onclick="submitResolve()">
+        <span id="resolveSubmitLbl">SUBMIT RESOLUTION</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const CLOUD_URL    = window.CLOUD_URL || location.origin;
+const CLOUD_WS_URL = CLOUD_URL.replace(/^https/, 'wss').replace(/^http/, 'ws');
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let authToken   = localStorage.getItem('cg_authority_token');
+let currentUser = null;
+let allIssues   = [];
+let activeFilter = 'all';
+let selectedId  = null;
+let resolveId   = null;
+let map         = null;
+let markers     = {};
+let resolveImages = [];
+let ws          = null;
+
+const CAT_ICONS = {INFRASTRUCTURE:'🔧',SANITATION:'🗑️',UTILITIES:'⚡',WELFARE:'🤝',SAFETY:'🛡️',OTHER:'📌'};
+const STATUS_COLORS = {OPEN:'#ff3b3b',UNDER_APPROVAL:'#ffb800',CLOSED:'#00e090',RESOLVED:'#00e090'};
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  if (authToken) {
+    try {
+      const r = await fetch(CLOUD_URL + '/api/auth/me', { headers: { Authorization: 'Bearer ' + authToken } });
+      if (r.ok) {
+        currentUser = await r.json();
+        if (currentUser.role !== 'AUTHORITY') { doLogout(); return; }
+        showApp();
+        return;
+      }
+    } catch {}
+    localStorage.removeItem('cg_authority_token');
+    authToken = null;
+  }
+  // Show auth
+  document.getElementById('authScreen').style.display = 'flex';
+});
+
+// ─── AUTH UI ──────────────────────────────────────────────────────────────────
+function authTab(tab) {
+  const login = tab === 'login';
+  document.querySelectorAll('.auth-tab').forEach((b,i) => b.classList.toggle('active', login ? i===0 : i===1));
+  document.getElementById('fsLogin').classList.toggle('on', login);
+  document.getElementById('fsSignup').classList.toggle('on', !login);
+  clearBanner();
+}
+
+function ke(e, fn) { if (e.key === 'Enter') fn(); }
+
+function showBanner(msg, type) {
+  const el = document.getElementById('authBanner');
+  el.className = 'auth-banner ' + type;
+  el.textContent = msg;
+}
+function clearBanner() { document.getElementById('authBanner').className = 'auth-banner'; }
+
+async function doLogin() {
+  const email = document.getElementById('lEmail').value.trim();
+  const pw    = document.getElementById('lPw').value;
+  if (!email || !pw) { showBanner('Please enter your email and password.', 'err'); return; }
+  const btn = document.getElementById('lBtn');
+  btn.disabled = true; btn.textContent = 'SIGNING IN…';
+  try {
+    const r = await fetch(CLOUD_URL + '/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pw })
+    });
+    const d = await r.json();
+    if (!r.ok) { showBanner(d.error || 'Login failed.', 'err'); btn.disabled=false; btn.textContent='SIGN IN →'; return; }
+    if (d.user.role !== 'AUTHORITY') { showBanner('This portal is for authority accounts only.','err'); btn.disabled=false; btn.textContent='SIGN IN →'; return; }
+    authToken = d.token; currentUser = d.user;
+    localStorage.setItem('cg_authority_token', authToken);
+    showApp();
+  } catch { showBanner('Cannot reach server.', 'err'); btn.disabled=false; btn.textContent='SIGN IN →'; }
+}
+
+async function doSignup() {
+  const name  = document.getElementById('sName').value.trim();
+  const email = document.getElementById('sEmail').value.trim();
+  const pw    = document.getElementById('sPw').value;
+  const code  = document.getElementById('sCode').value.trim().toUpperCase();
+  if (!name||!email||!pw||!code) { showBanner('All fields including invite code are required.','err'); return; }
+  if (pw.length < 6) { showBanner('Password must be at least 6 characters.','err'); return; }
+  const btn = document.getElementById('sBtn');
+  btn.disabled=true; btn.textContent='CREATING ACCOUNT…';
+  try {
+    const r = await fetch(CLOUD_URL + '/api/auth/signup', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, email, password: pw, authority_code: code })
+    });
+    const d = await r.json();
+    if (!r.ok) { showBanner(d.error || 'Signup failed.','err'); btn.disabled=false; btn.textContent='CREATE ACCOUNT →'; return; }
+    authToken = d.token; currentUser = d.user;
+    localStorage.setItem('cg_authority_token', authToken);
+    showApp();
+  } catch { showBanner('Cannot reach server.','err'); btn.disabled=false; btn.textContent='CREATE ACCOUNT →'; }
+}
+
+function doLogout() {
+  localStorage.removeItem('cg_authority_token');
+  location.reload();
+}
+
+// ─── APP INIT ─────────────────────────────────────────────────────────────────
+function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').classList.add('visible');
+  document.getElementById('userAvatar').textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('userName').textContent   = currentUser.name;
+  initMap();
+  loadIssues();
+  connectWS();
+}
+
+// ─── MAP ──────────────────────────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', { zoomControl: true }).setView([20.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap contributors', maxZoom:19
+  }).addTo(map);
+}
+
+function makeMarkerIcon(color) {
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:13px;height:13px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 8px ${color}99;"></div>`,
+    iconSize:[13,13], iconAnchor:[6,6]
+  });
+}
+
+function refreshMarkers(issues) {
+  Object.values(markers).forEach(m => m.remove());
+  markers = {};
+  issues.forEach(issue => {
+    if (!issue.geo_lat || !issue.geo_lng) return;
+    const color = STATUS_COLORS[issue.status] || '#637585';
+    const m = L.marker([issue.geo_lat, issue.geo_lng], { icon: makeMarkerIcon(color) })
+      .addTo(map)
+      .bindTooltip(`<b>${esc(issue.title)}</b><br>${esc(issue.region||'Unknown')}<br><span style="color:${color}">${issue.status}</span>`,{className:'leaflet-tooltip'});
+    m.on('click', () => openDetail(issue.id));
+    markers[issue.id] = m;
+  });
+}
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+async function loadIssues() {
+  try {
+    const r = await fetch(CLOUD_URL + '/api/issues', { headers: { Authorization: 'Bearer ' + authToken } });
+    if (!r.ok) return;
+    const { issues } = await r.json();
+    allIssues = issues || [];
+    applyFilter(activeFilter);
+    updateStats();
+  } catch(e) { console.error(e); }
+}
+
+function applyFilter(f) {
+  activeFilter = f;
+  const map2 = {all:'fba',OPEN:'fbo',UNDER_APPROVAL:'fbm',CLOSED:'fbc'};
+  const cls2 = {all:'fa',OPEN:'fo',UNDER_APPROVAL:'fm',CLOSED:'fc'};
+  ['all','OPEN','UNDER_APPROVAL','CLOSED'].forEach(k => {
+    document.getElementById(map2[k]).className = 'fb-btn' + (f===k ? ' '+cls2[k] : '');
+  });
+  const filtered = f === 'all' ? allIssues : allIssues.filter(i => i.status === f);
+  renderSideList(filtered);
+  refreshMarkers(filtered);
+  renderListView(filtered);
+}
+
+function updateStats() {
+  const open     = allIssues.filter(i => i.status==='OPEN').length;
+  const approval = allIssues.filter(i => i.status==='UNDER_APPROVAL').length;
+  const closed   = allIssues.filter(i => ['CLOSED','RESOLVED'].includes(i.status)).length;
+  const regions  = new Set(allIssues.map(i=>i.region).filter(Boolean)).size;
+  document.getElementById('fca').textContent = allIssues.length;
+  document.getElementById('fco').textContent = open;
+  document.getElementById('fcm').textContent = approval;
+  document.getElementById('fcc').textContent = closed;
+  document.getElementById('fsRegions').textContent = regions;
+  document.getElementById('fsTotal').textContent   = allIssues.length;
+}
+
+// ─── SIDE LIST ────────────────────────────────────────────────────────────────
+function renderSideList(issues) {
+  document.getElementById('panelCount').textContent = issues.length;
+  const list = document.getElementById('issueList');
+  if (!issues.length) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">📋</div><div class="es-title">NO ISSUES</div><div class="es-sub">Change filter to see more.</div></div>`;
+    return;
+  }
+  list.innerHTML = issues.map(i => `
+    <div class="issue-item ${selectedId===i.id?'selected':''}" id="ii_${i.id}" onclick="openDetail('${i.id}')">
+      <div class="ii-top">
+        <div class="ii-title">${CAT_ICONS[i.category]||'📌'} ${esc(i.title)}</div>
+        <div class="sb ${i.status}">${i.status.replace('_',' ')}</div>
+      </div>
+      <div class="ii-meta">
+        <span>📍 ${esc(i.region||'Unknown')}</span>
+        <span>${timeAgo(i.created_at)}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ─── LIST VIEW ────────────────────────────────────────────────────────────────
+function renderListView(issues) {
+  const grid = document.getElementById('lvGrid');
+  if (!issues.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">📋</div><div class="es-title">NO ISSUES</div><div class="es-sub">Change filter or wait for new reports.</div></div>`;
+    return;
+  }
+  grid.innerHTML = issues.map(i => `
+    <div class="lv-card" onclick="openDetail('${i.id}')">
+      <div class="lv-card-top">
+        <div class="lv-title">${CAT_ICONS[i.category]||'📌'} ${esc(i.title)}</div>
+        <div class="sb ${i.status}">${i.status.replace('_',' ')}</div>
+      </div>
+      ${i.description ? `<div class="lv-desc">${esc(i.description)}</div>` : ''}
+      <div class="lv-region"><span>📍</span> ${esc(i.region||'Unknown region')}</div>
+      <div class="lv-meta">
+        <span class="lv-meta-item">ROOM <span>${esc(i.room)}</span></span>
+        <span class="lv-meta-item">BY <span>${esc(i.user_name)}</span></span>
+        <span class="lv-meta-item">AGO <span>${timeAgo(i.created_at)}</span></span>
+      </div>
+    </div>`).join('');
+}
+
+// ─── DETAIL PANE ──────────────────────────────────────────────────────────────
+function openDetail(id) {
+  const issue = allIssues.find(i => i.id === id);
+  if (!issue) return;
+  selectedId = id;
+  document.querySelectorAll('.issue-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('ii_' + id);
+  if (el) { el.classList.add('selected'); el.scrollIntoView({block:'nearest'}); }
+  if (issue.geo_lat && issue.geo_lng) map.panTo([issue.geo_lat, issue.geo_lng]);
+
+  document.getElementById('dpTitle').textContent = issue.title;
+  const imgs = Array.isArray(issue.images) ? issue.images : [];
+
+  const canResolve = issue.status === 'OPEN';
+
+  let actionHtml = '';
+  if (canResolve) {
+    actionHtml = `<button class="action-btn resolve" onclick="openResolveModal('${id}')">✓ Mark as Resolved</button>`;
+  } else if (issue.status === 'UNDER_APPROVAL') {
+    const pct = issue.approval_percentage || 0;
+    const barColor = pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
+    actionHtml = `
+      <div style="border:1px solid rgba(255,184,0,0.25);border-radius:4px;padding:14px;background:rgba(255,184,0,0.04);">
+        <div style="font-family:var(--mono);font-size:8px;letter-spacing:0.14em;color:var(--amber);margin-bottom:10px;">⏳ WAITING FOR COMMUNITY APPROVAL</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
+          <span style="font-family:var(--mono);font-size:22px;font-weight:700;color:${barColor};">${pct}%</span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--text3);">approval · needs 70% to auto-close</span>
+        </div>
+        <div style="height:6px;background:var(--border2);border-radius:3px;overflow:hidden;position:relative;margin-bottom:8px;">
+          <div style="height:100%;background:${barColor};border-radius:3px;width:${Math.min(pct,100)}%;transition:width 0.5s;"></div>
+          <div style="position:absolute;top:0;bottom:0;left:70%;width:1px;background:rgba(255,255,255,0.15);"></div>
+        </div>
+        <div style="display:flex;gap:14px;font-family:var(--mono);font-size:9px;color:var(--text3);">
+          <span style="color:var(--green);">👍 ${issue.approvals_count||0} approve</span>
+          <span style="color:var(--red);">👎 ${issue.rejections_count||0} reject</span>
+          <span>${issue.total_votes||0} total votes</span>
+        </div>
+      </div>`;
+  } else if (issue.status === 'CLOSED') {
+    actionHtml = `
+      <div style="border:1px solid rgba(0,224,144,0.3);border-radius:4px;padding:14px;background:rgba(0,224,144,0.06);text-align:center;">
+        <div style="font-size:20px;margin-bottom:5px;">✅</div>
+        <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.12em;color:var(--green);">APPROVED BY COMMUNITY</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px;">${issue.approval_percentage||0}% approval · ${issue.total_votes||0} votes</div>
+      </div>`;
+  } else {
+    actionHtml = `<div class="action-status">Status: ${issue.status.replace('_',' ')}</div>`;
+  }
+
+  let resolutionHtml = '';
+  if (issue.resolution_note) {
+    const rimgs = Array.isArray(issue.resolution_images) ? issue.resolution_images : [];
+    resolutionHtml = `
+      <div class="dp-section">
+        <div class="dp-lbl">Resolution</div>
+        <div class="resolution-box">
+          <div class="resolution-box-title">✓ Resolution Note</div>
+          <div class="resolution-box-note">${esc(issue.resolution_note)}</div>
+          ${rimgs.length ? `<div class="dp-images">${rimgs.map(s=>`<img class="dp-img" src="${s}" onclick="window.open('${s}','_blank')">`).join('')}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('dpBody').innerHTML = `
+    <div class="dp-section">
+      <div class="dp-lbl">Status</div>
+      <div class="sb ${issue.status}" style="display:inline-block;">${issue.status.replace('_',' ')}</div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-lbl">Description</div>
+      <div class="dp-val">${esc(issue.description||'No description provided.')}</div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-lbl">Location</div>
+      <div class="dp-val">📍 ${esc(issue.region||'Unknown region')}${issue.geo_lat?` <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">(${Number(issue.geo_lat).toFixed(4)}, ${Number(issue.geo_lng).toFixed(4)})</span>`:''}</div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-lbl">Details</div>
+      <div class="dp-meta-grid">
+        <div class="dp-meta-item"><div class="dp-meta-key">ROOM</div><div class="dp-meta-val">${esc(issue.room)}</div></div>
+        <div class="dp-meta-item"><div class="dp-meta-key">REPORTED BY</div><div class="dp-meta-val">${esc(issue.user_name)}</div></div>
+        <div class="dp-meta-item"><div class="dp-meta-key">CATEGORY</div><div class="dp-meta-val">${CAT_ICONS[issue.category]||''} ${esc(issue.category)}</div></div>
+        <div class="dp-meta-item"><div class="dp-meta-key">REPORTED</div><div class="dp-meta-val">${timeAgo(issue.created_at)}</div></div>
+      </div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-lbl">Images</div>
+      ${imgs.length ? `<div class="dp-images">${imgs.map(s=>`<img class="dp-img" src="${s}" onclick="window.open('${s}','_blank')">`).join('')}</div>` : '<div class="dp-no-img">No images attached</div>'}
+    </div>
+    ${resolutionHtml}
+    <div class="action-area">${actionHtml}</div>
+  `;
+
+  document.getElementById('detailPane').classList.add('open');
+}
+
+function closeDetail() {
+  selectedId = null;
+  document.getElementById('detailPane').classList.remove('open');
+  document.querySelectorAll('.issue-item').forEach(el => el.classList.remove('selected'));
+}
+
+// ─── VIEW TOGGLE ──────────────────────────────────────────────────────────────
+function switchView(view) {
+  document.getElementById('tabMap').classList.toggle('active', view==='map');
+  document.getElementById('tabList').classList.toggle('active', view==='list');
+  const mapEl  = document.getElementById('map');
+  const listEl = document.getElementById('listView');
+  if (view === 'map') {
+    mapEl.style.display  = '';
+    listEl.classList.remove('visible');
+    setTimeout(() => map && map.invalidateSize(), 50);
+  } else {
+    mapEl.style.display  = 'none';
+    listEl.classList.add('visible');
+  }
+}
+
+// ─── CLOSE ISSUE ──────────────────────────────────────────────────────────────
+async function doClose(id) {
+  if (!confirm('Close this issue and approve its resolution?')) return;
+  try {
+    const r = await fetch(CLOUD_URL + '/api/close', {
+      method:'POST',
+      headers:{'Content-Type':'application/json', Authorization:'Bearer '+authToken},
+      body: JSON.stringify({ issueId: id })
+    });
+    const d = await r.json();
+    if (!r.ok) { alert('Could not close: ' + (d.error||'Unknown error')); return; }
+    const idx = allIssues.findIndex(i => i.id === id);
+    if (idx !== -1) allIssues[idx] = {...allIssues[idx], status:'CLOSED'};
+    applyFilter(activeFilter);
+    updateStats();
+    if (selectedId === id) openDetail(id);
+  } catch { alert('Cannot reach server.'); }
+}
+
+// ─── RESOLVE MODAL ────────────────────────────────────────────────────────────
+function openResolveModal(id) {
+  resolveId = id;
+  resolveImages = [];
+  document.getElementById('resolveNote').value = '';
+  document.getElementById('resolvePreview').innerHTML = '';
+  document.getElementById('rimgInput').value = '';
+  document.getElementById('resolveBanner').className = 'modal-banner';
+  document.getElementById('resolveSubmitBtn').disabled = false;
+  document.getElementById('resolveSubmitLbl').textContent = 'SUBMIT RESOLUTION';
+  document.getElementById('resolveModal').style.display = 'flex';
+}
+function closeResolveModal() {
+  document.getElementById('resolveModal').style.display = 'none';
+  resolveId = null;
+}
+
+function previewResolveImages(input) {
+  resolveImages = [];
+  const preview = document.getElementById('resolvePreview');
+  preview.innerHTML = '';
+  Array.from(input.files).slice(0,4).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      resolveImages.push(e.target.result);
+      const img = document.createElement('img');
+      img.src = e.target.result; img.className = 'prev-img';
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function submitResolve() {
+  const note = document.getElementById('resolveNote').value.trim();
+  if (!note) {
+    const b = document.getElementById('resolveBanner');
+    b.className='modal-banner err'; b.textContent='⚠ Resolution note is required.'; return;
+  }
+  const btn = document.getElementById('resolveSubmitBtn');
+  const lbl = document.getElementById('resolveSubmitLbl');
+  btn.disabled=true; lbl.textContent='SUBMITTING…';
+  try {
+    const r = await fetch(CLOUD_URL + '/api/resolve', {
+      method:'POST',
+      headers:{'Content-Type':'application/json', Authorization:'Bearer '+authToken},
+      body: JSON.stringify({ issueId: resolveId, note, images: resolveImages })
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      const b = document.getElementById('resolveBanner');
+      b.className='modal-banner err'; b.textContent='⚠ '+(d.error||'Failed');
+      btn.disabled=false; lbl.textContent='SUBMIT RESOLUTION'; return;
+    }
+    const idx = allIssues.findIndex(i => i.id === resolveId);
+    if (idx !== -1) allIssues[idx] = {...allIssues[idx], status:'UNDER_APPROVAL', resolution_note: note, resolution_images: resolveImages};
+    applyFilter(activeFilter);
+    updateStats();
+    if (selectedId === resolveId) openDetail(resolveId);
+    closeResolveModal();
+  } catch {
+    const b = document.getElementById('resolveBanner');
+    b.className='modal-banner err'; b.textContent='⚠ Cannot reach server.';
+    btn.disabled=false; lbl.textContent='SUBMIT RESOLUTION';
+  }
+}
+
+// ─── WEBSOCKET ────────────────────────────────────────────────────────────────
+function connectWS() {
+  ws = new WebSocket(CLOUD_WS_URL);
+  const dot = document.getElementById('wsDot');
+  const lbl = document.getElementById('wsLabel');
+  ws.onopen  = () => { dot.className='ws-dot live'; lbl.textContent='LIVE'; };
+  ws.onclose = () => { dot.className='ws-dot'; lbl.textContent='RECONNECTING'; setTimeout(connectWS, 5000); };
+  ws.onerror = () => {};
+  ws.onmessage = e => {
+    let msg; try { msg=JSON.parse(e.data); } catch { return; }
+    if (msg.type==='new_issue' && msg.issue) {
+      if (!allIssues.find(i=>i.id===msg.issue.id)) {
+        allIssues.unshift(msg.issue);
+        applyFilter(activeFilter);
+        updateStats();
+      }
+    }
+    if (msg.type==='issue_resolved' && msg.issueId) {
+      const idx=allIssues.findIndex(i=>i.id===msg.issueId);
+      if (idx!==-1) {
+        const updated = msg.issue ? {
+          ...msg.issue,
+          resolution_images: Array.isArray(msg.issue.resolution_images)
+            ? msg.issue.resolution_images
+            : JSON.parse(msg.issue.resolution_images||'[]')
+        } : {};
+        allIssues[idx]={...allIssues[idx],status:msg.status||'UNDER_APPROVAL',...updated};
+        applyFilter(activeFilter); updateStats(); if(selectedId===msg.issueId)openDetail(msg.issueId);
+      }
+    }
+    if (msg.type==='issue_vote_update' && msg.issueId) {
+      const idx=allIssues.findIndex(i=>String(i.id)===String(msg.issueId));
+      if (idx!==-1) {
+        allIssues[idx]={...allIssues[idx],
+          approvals_count:    msg.approvals_count,
+          rejections_count:   msg.rejections_count,
+          total_votes:        msg.total_votes,
+          approval_percentage: msg.approval_percentage,
+        };
+        applyFilter(activeFilter); updateStats();
+        if(selectedId!=null && String(selectedId)===String(msg.issueId)) openDetail(selectedId);
+      }
+    }
+    if (msg.type==='issue_closed' && msg.issueId) {
+      const idx=allIssues.findIndex(i=>String(i.id)===String(msg.issueId));
+      if (idx!==-1) { allIssues[idx]={...allIssues[idx],status:'CLOSED'}; applyFilter(activeFilter); updateStats(); if(String(selectedId)===String(msg.issueId))openDetail(selectedId); }
+    }
+  };
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function timeAgo(ts) {
+  const s=Math.floor(Date.now()/1000)-Math.floor(Number(ts)/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+</script>
+</body>
+</html>

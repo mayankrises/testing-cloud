@@ -1,0 +1,16 @@
+{
+  "name": "crisislink-cloud",
+  "version": "1.0.0",
+  "description": "CrisisLink cloud relay — receives issues from local servers, serves public dashboard",
+  "main": "cloud-server.js",
+  "scripts": {
+    "start": "node cloud-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "ws": "^8.20.0"
+  }
+}
