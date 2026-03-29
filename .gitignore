@@ -11,3 +11,7 @@ Thumbs.db
 .idea/
 node_modules/
 .env
+*.db-shm
+*.db-wal
+
+

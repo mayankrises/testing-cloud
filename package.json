@@ -4,7 +4,8 @@
   "description": "CrisisLink cloud relay — receives issues from local servers, serves public dashboard",
   "main": "cloud-server.js",
   "scripts": {
-    "start": "node cloud-server.js"
+    "start": "node cloud-server.js",
+    "build": "npm rebuild better-sqlite3"
   },
   "engines": {
     "node": ">=18"

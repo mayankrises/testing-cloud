@@ -1,412 +1,412 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CivicGuard — Live Dashboard</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
-:root{
-  --bg:#0a0c0f;--surface:#111418;--surface2:#181d22;--surface3:#1d232a;
-  --border:#1e2530;--border2:#2a3340;
-  --text:#c8d4e0;--text2:#6a7d90;--text3:#3d4f60;
-  --accent:#00e5ff;--accent-dim:rgba(0,229,255,0.08);--accent-glow:rgba(0,229,255,0.15);
-  --red:#ff3b3b;--red-dim:rgba(255,59,59,0.12);
-  --green:#00e090;--green-dim:rgba(0,224,144,0.1);
-  --amber:#ffb800;--amber-dim:rgba(255,184,0,0.1);
-  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.1);
-  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
-body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:40px 40px;}
-
-/* ── NAV ── */
-nav{position:sticky;top:0;z-index:50;background:rgba(17,20,24,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;flex-shrink:0;}
-.nav-logo{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:0.2em;color:var(--accent);display:flex;align-items:center;gap:10px;text-decoration:none;}
-.nav-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(0,229,255,0.6);animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
-.nav-center{display:flex;align-items:center;gap:4px;}
-.nav-link{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--text3);padding:6px 12px;border-radius:4px;cursor:pointer;transition:all 0.18s;border:1px solid transparent;text-decoration:none;}
-.nav-link:hover{color:var(--text);background:var(--surface2);border-color:var(--border);}
-.nav-link.active{color:var(--accent);background:var(--accent-dim);border-color:rgba(0,229,255,0.2);}
-.nav-right{display:flex;align-items:center;gap:10px;}
-.ws-status{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.08em;}
-.ws-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);}
-.ws-dot.live{background:var(--green);box-shadow:0 0 6px rgba(0,224,144,0.5);}
-
-/* Authority Portal Button */
-.authority-btn{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.12em;padding:7px 16px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,184,0,0.4);background:rgba(255,184,0,0.08);color:var(--amber);text-decoration:none;transition:all 0.2s;}
-.authority-btn:hover{background:rgba(255,184,0,0.15);border-color:rgba(255,184,0,0.6);box-shadow:0 0 16px rgba(255,184,0,0.12);}
-.authority-btn-icon{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--amber);display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;}
-
-/* ── HERO BANNER ── */
-.hero{position:relative;z-index:1;padding:52px 28px 40px;max-width:1100px;width:100%;margin:0 auto;}
-.hero-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:0.24em;color:var(--accent);opacity:0.7;margin-bottom:12px;text-transform:uppercase;}
-.hero-title{font-size:36px;font-weight:300;color:var(--text);line-height:1.2;margin-bottom:8px;}
-.hero-title strong{color:var(--accent);font-weight:600;}
-.hero-sub{font-size:14px;color:var(--text2);line-height:1.6;max-width:480px;}
-.hero-actions{display:flex;align-items:center;gap:10px;margin-top:24px;}
-.hero-btn-primary{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.14em;padding:11px 22px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,184,0,0.4);background:rgba(255,184,0,0.1);color:var(--amber);text-decoration:none;transition:all 0.2s;display:flex;align-items:center;gap:8px;}
-.hero-btn-primary:hover{background:rgba(255,184,0,0.18);box-shadow:0 0 20px rgba(255,184,0,0.14);}
-.hero-btn-secondary{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;padding:11px 20px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--text3);text-decoration:none;transition:all 0.2s;}
-.hero-btn-secondary:hover{color:var(--text);background:var(--surface2);}
-
-/* ── STATS ROW ── */
-.stats-row{position:relative;z-index:1;display:flex;gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
-.stat-card{flex:1;padding:20px 28px;background:var(--surface);transition:background 0.2s;}
-.stat-card:hover{background:var(--surface2);}
-.stat-val{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--accent);line-height:1;margin-bottom:5px;}
-.stat-val.red{color:var(--red);}
-.stat-val.amber{color:var(--amber);}
-.stat-val.green{color:var(--green);}
-.stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;color:var(--text3);}
-
-/* ── MAIN ── */
-main{flex:1;position:relative;z-index:1;padding:36px 28px;max-width:1100px;width:100%;margin:0 auto;}
-
-/* ── FILTER BAR ── */
-.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
-.filter-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;padding:6px 13px;border-radius:3px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--text3);transition:all 0.18s;display:flex;align-items:center;gap:5px;}
-.filter-btn:hover{color:var(--text);background:var(--surface2);}
-.filter-btn.active{color:var(--accent);border-color:rgba(0,229,255,0.4);background:var(--accent-dim);}
-.filter-btn.active-open{color:var(--red);border-color:rgba(255,59,59,0.4);background:var(--red-dim);}
-.filter-btn.active-amber{color:var(--amber);border-color:rgba(255,184,0,0.4);background:var(--amber-dim);}
-.filter-btn.active-green{color:var(--green);border-color:rgba(0,224,144,0.4);background:var(--green-dim);}
-.filter-count{font-size:8px;padding:1px 5px;border-radius:8px;background:var(--surface3);}
-
-/* ── ISSUE GRID ── */
-.issue-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;}
-.issue-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s;cursor:default;}
-.issue-card:hover{border-color:var(--border2);background:var(--surface2);}
-.ic-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
-.ic-title{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;flex:1;}
-.status-badge{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.08em;padding:2px 7px;border-radius:2px;border:1px solid currentColor;flex-shrink:0;white-space:nowrap;}
-.badge-OPEN{color:var(--red);}
-.badge-UNDER_APPROVAL{color:var(--amber);}
-.badge-CLOSED,.badge-RESOLVED{color:var(--green);}
-.ic-desc{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.ic-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.ic-meta-item{font-family:var(--mono);font-size:9px;color:var(--text3);}
-.ic-meta-item span{color:var(--text2);}
-.ic-region{font-family:var(--mono);font-size:9px;color:var(--text3);display:flex;align-items:center;gap:4px;}
-.ic-region span{color:var(--accent);opacity:0.6;}
-
-/* ── SECTION HEADER ── */
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-.section-title{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.18em;color:var(--text3);display:flex;align-items:center;gap:8px;}
-.section-title::before{content:'';display:inline-block;width:3px;height:12px;background:var(--accent);border-radius:2px;}
-.count-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:var(--accent);}
-
-/* ── EMPTY ── */
-.empty-state{grid-column:1/-1;text-align:center;padding:60px 20px;background:var(--surface);border:1px dashed var(--border2);border-radius:6px;}
-.empty-icon{font-size:32px;margin-bottom:14px;opacity:0.4;}
-.empty-title{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.12em;margin-bottom:8px;}
-.empty-sub{font-size:13px;color:var(--text3);line-height:1.6;}
-
-/* ── AUTHORITY PORTAL PROMO CARD ── */
-.promo-card{position:relative;overflow:hidden;border:1px solid rgba(255,184,0,0.25);border-radius:8px;padding:28px 32px;margin-bottom:32px;background:linear-gradient(135deg,rgba(255,184,0,0.05) 0%,rgba(255,184,0,0.01) 100%);}
-.promo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,184,0,0.5),transparent);}
-.promo-card::after{content:'⚖';position:absolute;right:24px;top:50%;transform:translateY(-50%);font-size:64px;opacity:0.05;line-height:1;}
-.promo-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.promo-chip{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.16em;padding:3px 9px;border-radius:2px;background:rgba(255,184,0,0.12);border:1px solid rgba(255,184,0,0.3);color:var(--amber);}
-.promo-title{font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px;}
-.promo-desc{font-size:13px;color:var(--text2);line-height:1.6;max-width:500px;margin-bottom:18px;}
-.promo-features{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
-.promo-feature{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:5px;}
-.promo-feature::before{content:'✓';color:var(--green);}
-.promo-cta{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.14em;padding:11px 22px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,184,0,0.5);background:rgba(255,184,0,0.1);color:var(--amber);text-decoration:none;transition:all 0.2s;}
-.promo-cta:hover{background:rgba(255,184,0,0.18);box-shadow:0 0 24px rgba(255,184,0,0.15);}
-
-/* ── LOADING SKELETON ── */
-.skel{animation:shimmer 1.4s ease-in-out infinite;}
-@keyframes shimmer{0%,100%{opacity:0.35}50%{opacity:0.6}}
-.skel-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;height:130px;}
-
-/* ── ROOM FILTER ── */
-select{background:var(--surface2);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:9px;padding:6px 10px;outline:none;cursor:pointer;letter-spacing:0.06em;}
-
-/* ── LIVE BADGE ── */
-.live-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.12em;padding:3px 9px;border-radius:2px;background:rgba(0,224,144,0.08);border:1px solid rgba(0,224,144,0.25);color:var(--green);}
-.live-pulse{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite;}
-
-@media(max-width:640px){
-  nav{padding:0 16px;}
-  .hero{padding:32px 16px 28px;}
-  .hero-title{font-size:26px;}
-  main{padding:24px 16px;}
-  .issue-grid{grid-template-columns:1fr;}
-  .stats-row{flex-wrap:wrap;}
-  .stat-card{min-width:calc(50% - 0.5px);}
-  .authority-btn span{display:none;}
-}
-</style>
-</head>
-<body>
-
-<!-- NAV -->
-<nav>
-  <a class="nav-logo" href="#">
-    <div class="nav-dot"></div>
-    CIVICGUARD
-  </a>
-  <div class="nav-center">
-    <div class="live-badge">
-      <div class="live-pulse"></div>
-      <span id="wsLabel">CONNECTING</span>
-    </div>
-  </div>
-  <div class="nav-right">
-    <a class="authority-btn" href="/authority">
-      <div class="authority-btn-icon">⚖</div>
-      <span>AUTHORITY PORTAL</span>
-    </a>
-  </div>
-</nav>
-
-<!-- STATS ROW -->
-<div class="stats-row">
-  <div class="stat-card">
-    <div class="stat-val" id="statTotal">—</div>
-    <div class="stat-lbl">TOTAL ISSUES</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-val red" id="statOpen">—</div>
-    <div class="stat-lbl">UNRESOLVED</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-val amber" id="statApproval">—</div>
-    <div class="stat-lbl">UNDER APPROVAL</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-val green" id="statClosed">—</div>
-    <div class="stat-lbl">RESOLVED</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-val" id="statRegions">—</div>
-    <div class="stat-lbl">REGIONS</div>
-  </div>
-</div>
-
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-eyebrow">PUBLIC LIVE FEED</div>
-  <h1 class="hero-title">CivicGuard — <strong>Community Dashboard</strong></h1>
-  <p class="hero-sub">Real-time civic issues reported from local networks across India. All data is live and publicly readable.</p>
-  <div class="hero-actions">
-    <a class="hero-btn-primary" href="/authority">
-      ⚖ Enter Authority Portal
-    </a>
-    <a class="hero-btn-secondary" href="#issuesSection">↓ View Issues</a>
-  </div>
-</div>
-
-<!-- MAIN -->
-<main>
-
-  <!-- Authority Portal Promo -->
-  <div class="promo-card">
-    <div class="promo-top">
-      <div class="promo-chip">FOR OFFICIALS</div>
-    </div>
-    <div class="promo-title">Authority Portal</div>
-    <div class="promo-desc">Government officials and department heads can log in to review, action, and close civic issues. Requires an authority invite code from your department admin.</div>
-    <div class="promo-features">
-      <div class="promo-feature">Interactive map view</div>
-      <div class="promo-feature">Resolve & close issues</div>
-      <div class="promo-feature">Real-time updates</div>
-      <div class="promo-feature">Filter by region & status</div>
-    </div>
-    <a class="promo-cta" href="/authority">⚖ Open Authority Portal →</a>
-  </div>
-
-  <!-- Issues Section -->
-  <div id="issuesSection">
-    <div class="section-header">
-      <div class="section-title">
-        Live Issues
-        <span class="count-badge" id="countBadge">0</span>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <select id="roomFilter" onchange="filterIssues()">
-          <option value="">ALL ROOMS</option>
-        </select>
-        <select id="statusFilter" onchange="filterIssues()">
-          <option value="">ALL STATUS</option>
-          <option value="OPEN">🔴 OPEN</option>
-          <option value="UNDER_APPROVAL">🟡 UNDER APPROVAL</option>
-          <option value="CLOSED">🟢 CLOSED</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Filter Pills -->
-    <div class="filter-bar">
-      <button class="filter-btn active" id="f-all" onclick="setFilter('all')">All <span class="filter-count" id="fc-all">0</span></button>
-      <button class="filter-btn" id="f-open" onclick="setFilter('OPEN')">🔴 Open <span class="filter-count" id="fc-open">0</span></button>
-      <button class="filter-btn" id="f-approval" onclick="setFilter('UNDER_APPROVAL')">🟡 Approval <span class="filter-count" id="fc-approval">0</span></button>
-      <button class="filter-btn" id="f-closed" onclick="setFilter('CLOSED')">🟢 Resolved <span class="filter-count" id="fc-closed">0</span></button>
-    </div>
-
-    <div class="issue-grid" id="issueGrid">
-      <div class="skel-card skel"></div>
-      <div class="skel-card skel"></div>
-      <div class="skel-card skel"></div>
-    </div>
-  </div>
-</main>
-
-<script>
-const CLOUD_URL = window.location.origin;
-const WS_URL = CLOUD_URL.replace(/^https/, 'wss').replace(/^http/, 'ws');
-
-const CAT_ICONS = {INFRASTRUCTURE:'🔧',SANITATION:'🗑️',UTILITIES:'⚡',WELFARE:'🤝',SAFETY:'🛡️',OTHER:'📌'};
-let allIssues = [];
-let activeStatusFilter = 'all';
-
-// ── BOOT ───────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  loadIssues();
-  connectWS();
-});
-
-async function loadIssues() {
-  try {
-    const r = await fetch(CLOUD_URL + '/api/issues');
-    if (!r.ok) throw new Error();
-    const { issues } = await r.json();
-    allIssues = issues || [];
-    renderAll();
-    populateRoomFilter();
-  } catch {
-    document.getElementById('issueGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">⚠</div><div class="empty-title">COULD NOT LOAD ISSUES</div><div class="empty-sub">Cloud server may be offline.</div></div>';
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicGuard — Live Dashboard</title>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+  :root{
+    --bg:#0a0c0f;--surface:#111418;--surface2:#181d22;--surface3:#1d232a;
+    --border:#1e2530;--border2:#2a3340;
+    --text:#c8d4e0;--text2:#6a7d90;--text3:#3d4f60;
+    --accent:#00e5ff;--accent-dim:rgba(0,229,255,0.08);--accent-glow:rgba(0,229,255,0.15);
+    --red:#ff3b3b;--red-dim:rgba(255,59,59,0.12);
+    --green:#00e090;--green-dim:rgba(0,224,144,0.1);
+    --amber:#ffb800;--amber-dim:rgba(255,184,0,0.1);
+    --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.1);
+    --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
   }
-}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
+  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:40px 40px;}
 
-function renderAll() {
-  updateStats();
-  filterIssues();
-}
+  /* ── NAV ── */
+  nav{position:sticky;top:0;z-index:50;background:rgba(17,20,24,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;flex-shrink:0;}
+  .nav-logo{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:0.2em;color:var(--accent);display:flex;align-items:center;gap:10px;text-decoration:none;}
+  .nav-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(0,229,255,0.6);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+  .nav-center{display:flex;align-items:center;gap:4px;}
+  .nav-link{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--text3);padding:6px 12px;border-radius:4px;cursor:pointer;transition:all 0.18s;border:1px solid transparent;text-decoration:none;}
+  .nav-link:hover{color:var(--text);background:var(--surface2);border-color:var(--border);}
+  .nav-link.active{color:var(--accent);background:var(--accent-dim);border-color:rgba(0,229,255,0.2);}
+  .nav-right{display:flex;align-items:center;gap:10px;}
+  .ws-status{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.08em;}
+  .ws-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);}
+  .ws-dot.live{background:var(--green);box-shadow:0 0 6px rgba(0,224,144,0.5);}
 
-function updateStats() {
-  const open     = allIssues.filter(i => i.status === 'OPEN').length;
-  const approval = allIssues.filter(i => i.status === 'UNDER_APPROVAL').length;
-  const closed   = allIssues.filter(i => ['CLOSED','RESOLVED'].includes(i.status)).length;
-  const regions  = new Set(allIssues.map(i => i.region).filter(Boolean)).size;
-  document.getElementById('statTotal').textContent    = allIssues.length || '—';
-  document.getElementById('statOpen').textContent     = open || '—';
-  document.getElementById('statApproval').textContent = approval || '—';
-  document.getElementById('statClosed').textContent   = closed || '—';
-  document.getElementById('statRegions').textContent  = regions || '—';
-  document.getElementById('fc-all').textContent      = allIssues.length;
-  document.getElementById('fc-open').textContent     = open;
-  document.getElementById('fc-approval').textContent = approval;
-  document.getElementById('fc-closed').textContent   = closed;
-}
+  /* Authority Portal Button */
+  .authority-btn{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.12em;padding:7px 16px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,184,0,0.4);background:rgba(255,184,0,0.08);color:var(--amber);text-decoration:none;transition:all 0.2s;}
+  .authority-btn:hover{background:rgba(255,184,0,0.15);border-color:rgba(255,184,0,0.6);box-shadow:0 0 16px rgba(255,184,0,0.12);}
+  .authority-btn-icon{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--amber);display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;}
 
-function setFilter(f) {
-  activeStatusFilter = f;
-  ['all','open','approval','closed'].forEach(k => {
-    const btn = document.getElementById('f-' + k);
-    btn.className = 'filter-btn';
-    const map = {all:'all',open:'OPEN',approval:'UNDER_APPROVAL',closed:'CLOSED'};
-    if (f === map[k]) {
-      btn.className = f === 'all' ? 'filter-btn active' : f === 'OPEN' ? 'filter-btn active-open' : f === 'UNDER_APPROVAL' ? 'filter-btn active-amber' : 'filter-btn active-green';
-    }
-  });
-  filterIssues();
-}
+  /* ── HERO BANNER ── */
+  .hero{position:relative;z-index:1;padding:52px 28px 40px;max-width:1100px;width:100%;margin:0 auto;}
+  .hero-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:0.24em;color:var(--accent);opacity:0.7;margin-bottom:12px;text-transform:uppercase;}
+  .hero-title{font-size:36px;font-weight:300;color:var(--text);line-height:1.2;margin-bottom:8px;}
+  .hero-title strong{color:var(--accent);font-weight:600;}
+  .hero-sub{font-size:14px;color:var(--text2);line-height:1.6;max-width:480px;}
+  .hero-actions{display:flex;align-items:center;gap:10px;margin-top:24px;}
+  .hero-btn-primary{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.14em;padding:11px 22px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,184,0,0.4);background:rgba(255,184,0,0.1);color:var(--amber);text-decoration:none;transition:all 0.2s;display:flex;align-items:center;gap:8px;}
+  .hero-btn-primary:hover{background:rgba(255,184,0,0.18);box-shadow:0 0 20px rgba(255,184,0,0.14);}
+  .hero-btn-secondary{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;padding:11px 20px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--text3);text-decoration:none;transition:all 0.2s;}
+  .hero-btn-secondary:hover{color:var(--text);background:var(--surface2);}
 
-function filterIssues() {
-  const room = document.getElementById('roomFilter').value;
-  let filtered = allIssues;
-  if (activeStatusFilter !== 'all') filtered = filtered.filter(i => i.status === activeStatusFilter);
-  if (room) filtered = filtered.filter(i => i.room === room);
-  renderIssues(filtered);
-}
+  /* ── STATS ROW ── */
+  .stats-row{position:relative;z-index:1;display:flex;gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+  .stat-card{flex:1;padding:20px 28px;background:var(--surface);transition:background 0.2s;}
+  .stat-card:hover{background:var(--surface2);}
+  .stat-val{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--accent);line-height:1;margin-bottom:5px;}
+  .stat-val.red{color:var(--red);}
+  .stat-val.amber{color:var(--amber);}
+  .stat-val.green{color:var(--green);}
+  .stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;color:var(--text3);}
 
-function populateRoomFilter() {
-  const rooms = [...new Set(allIssues.map(i => i.room))].sort();
-  const sel = document.getElementById('roomFilter');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">ALL ROOMS</option>';
-  rooms.forEach(r => {
-    const o = document.createElement('option');
-    o.value = r; o.textContent = r;
-    sel.appendChild(o);
-  });
-  if (cur) sel.value = cur;
-}
+  /* ── MAIN ── */
+  main{flex:1;position:relative;z-index:1;padding:36px 28px;max-width:1100px;width:100%;margin:0 auto;}
 
-function renderIssues(issues) {
-  const grid = document.getElementById('issueGrid');
-  document.getElementById('countBadge').textContent = issues.length;
-  if (!issues.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">📋</div><div class="empty-title">NO ISSUES</div><div class="empty-sub">No issues match the current filter.</div></div>';
-    return;
+  /* ── FILTER BAR ── */
+  .filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  .filter-btn{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;padding:6px 13px;border-radius:3px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--text3);transition:all 0.18s;display:flex;align-items:center;gap:5px;}
+  .filter-btn:hover{color:var(--text);background:var(--surface2);}
+  .filter-btn.active{color:var(--accent);border-color:rgba(0,229,255,0.4);background:var(--accent-dim);}
+  .filter-btn.active-open{color:var(--red);border-color:rgba(255,59,59,0.4);background:var(--red-dim);}
+  .filter-btn.active-amber{color:var(--amber);border-color:rgba(255,184,0,0.4);background:var(--amber-dim);}
+  .filter-btn.active-green{color:var(--green);border-color:rgba(0,224,144,0.4);background:var(--green-dim);}
+  .filter-count{font-size:8px;padding:1px 5px;border-radius:8px;background:var(--surface3);}
+
+  /* ── ISSUE GRID ── */
+  .issue-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;}
+  .issue-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s;cursor:default;}
+  .issue-card:hover{border-color:var(--border2);background:var(--surface2);}
+  .ic-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .ic-title{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;flex:1;}
+  .status-badge{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.08em;padding:2px 7px;border-radius:2px;border:1px solid currentColor;flex-shrink:0;white-space:nowrap;}
+  .badge-OPEN{color:var(--red);}
+  .badge-UNDER_APPROVAL{color:var(--amber);}
+  .badge-CLOSED,.badge-RESOLVED{color:var(--green);}
+  .ic-desc{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .ic-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .ic-meta-item{font-family:var(--mono);font-size:9px;color:var(--text3);}
+  .ic-meta-item span{color:var(--text2);}
+  .ic-region{font-family:var(--mono);font-size:9px;color:var(--text3);display:flex;align-items:center;gap:4px;}
+  .ic-region span{color:var(--accent);opacity:0.6;}
+
+  /* ── SECTION HEADER ── */
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .section-title{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.18em;color:var(--text3);display:flex;align-items:center;gap:8px;}
+  .section-title::before{content:'';display:inline-block;width:3px;height:12px;background:var(--accent);border-radius:2px;}
+  .count-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:var(--accent);}
+
+  /* ── EMPTY ── */
+  .empty-state{grid-column:1/-1;text-align:center;padding:60px 20px;background:var(--surface);border:1px dashed var(--border2);border-radius:6px;}
+  .empty-icon{font-size:32px;margin-bottom:14px;opacity:0.4;}
+  .empty-title{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.12em;margin-bottom:8px;}
+  .empty-sub{font-size:13px;color:var(--text3);line-height:1.6;}
+
+  /* ── AUTHORITY PORTAL PROMO CARD ── */
+  .promo-card{position:relative;overflow:hidden;border:1px solid rgba(255,184,0,0.25);border-radius:8px;padding:28px 32px;margin-bottom:32px;background:linear-gradient(135deg,rgba(255,184,0,0.05) 0%,rgba(255,184,0,0.01) 100%);}
+  .promo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,184,0,0.5),transparent);}
+  .promo-card::after{content:'⚖';position:absolute;right:24px;top:50%;transform:translateY(-50%);font-size:64px;opacity:0.05;line-height:1;}
+  .promo-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .promo-chip{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.16em;padding:3px 9px;border-radius:2px;background:rgba(255,184,0,0.12);border:1px solid rgba(255,184,0,0.3);color:var(--amber);}
+  .promo-title{font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px;}
+  .promo-desc{font-size:13px;color:var(--text2);line-height:1.6;max-width:500px;margin-bottom:18px;}
+  .promo-features{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
+  .promo-feature{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:5px;}
+  .promo-feature::before{content:'✓';color:var(--green);}
+  .promo-cta{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.14em;padding:11px 22px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,184,0,0.5);background:rgba(255,184,0,0.1);color:var(--amber);text-decoration:none;transition:all 0.2s;}
+  .promo-cta:hover{background:rgba(255,184,0,0.18);box-shadow:0 0 24px rgba(255,184,0,0.15);}
+
+  /* ── LOADING SKELETON ── */
+  .skel{animation:shimmer 1.4s ease-in-out infinite;}
+  @keyframes shimmer{0%,100%{opacity:0.35}50%{opacity:0.6}}
+  .skel-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;height:130px;}
+
+  /* ── ROOM FILTER ── */
+  select{background:var(--surface2);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:9px;padding:6px 10px;outline:none;cursor:pointer;letter-spacing:0.06em;}
+
+  /* ── LIVE BADGE ── */
+  .live-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.12em;padding:3px 9px;border-radius:2px;background:rgba(0,224,144,0.08);border:1px solid rgba(0,224,144,0.25);color:var(--green);}
+  .live-pulse{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite;}
+
+  @media(max-width:640px){
+    nav{padding:0 16px;}
+    .hero{padding:32px 16px 28px;}
+    .hero-title{font-size:26px;}
+    main{padding:24px 16px;}
+    .issue-grid{grid-template-columns:1fr;}
+    .stats-row{flex-wrap:wrap;}
+    .stat-card{min-width:calc(50% - 0.5px);}
+    .authority-btn span{display:none;}
   }
-  grid.innerHTML = issues.map(i => `
-    <div class="issue-card">
-      <div class="ic-top">
-        <div class="ic-title">${CAT_ICONS[i.category]||'📌'} ${esc(i.title)}</div>
-        <div class="status-badge badge-${i.status}">${i.status.replace('_',' ')}</div>
-      </div>
-      ${i.description ? `<div class="ic-desc">${esc(i.description)}</div>` : ''}
-      <div class="ic-region"><span>📍</span> ${esc(i.region || 'Unknown region')}</div>
-      <div class="ic-meta">
-        <span class="ic-meta-item">ROOM <span>${esc(i.room)}</span></span>
-        <span class="ic-meta-item">BY <span>${esc(i.user_name)}</span></span>
-        <span class="ic-meta-item">AGO <span>${timeAgo(i.created_at)}</span></span>
-      </div>
-    </div>`).join('');
-}
+  </style>
+  </head>
+  <body>
 
-// ── WS ─────────────────────────────────────────────────────────────────────
-function connectWS() {
-  const ws = new WebSocket(WS_URL);
-  ws.onopen = () => { document.getElementById('wsLabel').textContent = 'LIVE'; };
-  ws.onclose = () => { document.getElementById('wsLabel').textContent = 'RECONNECTING'; setTimeout(connectWS, 5000); };
-  ws.onerror = () => {};
-  ws.onmessage = e => {
-    let msg; try { msg = JSON.parse(e.data); } catch { return; }
-    if (msg.type === 'new_issue' && msg.issue) {
-      if (!allIssues.find(i => i.id === msg.issue.id)) {
-        allIssues.unshift(msg.issue);
-        renderAll();
-        populateRoomFilter();
-      }
-    }
-    if (msg.type === 'issue_resolved' && msg.issueId) {
-      const idx = allIssues.findIndex(i => i.id === msg.issueId);
-      if (idx !== -1) { allIssues[idx] = { ...allIssues[idx], status: msg.status || 'UNDER_APPROVAL', ...(msg.issue||{}) }; renderAll(); }
-    }
-    if (msg.type === 'issue_vote_update' && msg.issueId) {
-      const idx = allIssues.findIndex(i => String(i.id) === String(msg.issueId));
-      if (idx !== -1) {
-        allIssues[idx] = { ...allIssues[idx],
-          approvals_count: msg.approvals_count,
-          rejections_count: msg.rejections_count,
-          total_votes: msg.total_votes,
-          approval_percentage: msg.approval_percentage,
-        };
-        renderAll();
-      }
-    }
-    if (msg.type === 'issue_closed' && msg.issueId) {
-      const idx = allIssues.findIndex(i => String(i.id) === String(msg.issueId));
-      if (idx !== -1) { allIssues[idx] = { ...allIssues[idx], status: 'CLOSED' }; renderAll(); }
-    }
-  };
-}
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">
+      <div class="nav-dot"></div>
+      CIVICGUARD
+    </a>
+    <div class="nav-center">
+      <div class="live-badge">
+        <div class="live-pulse"></div>
+        <span id="wsLabel">CONNECTING</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <a class="authority-btn" href="/authority">
+        <div class="authority-btn-icon">⚖</div>
+        <span>AUTHORITY PORTAL</span>
+      </a>
+    </div>
+  </nav>
 
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function timeAgo(ts) {
-  const s = Math.floor(Date.now()/1000) - Math.floor(Number(ts)/1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return Math.floor(s/60) + 'm ago';
-  if (s < 86400) return Math.floor(s/3600) + 'h ago';
-  return Math.floor(s/86400) + 'd ago';
-}
-</script>
-</body>
-</html>
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-val" id="statTotal">—</div>
+      <div class="stat-lbl">TOTAL ISSUES</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val red" id="statOpen">—</div>
+      <div class="stat-lbl">UNRESOLVED</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val amber" id="statApproval">—</div>
+      <div class="stat-lbl">UNDER APPROVAL</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val green" id="statClosed">—</div>
+      <div class="stat-lbl">RESOLVED</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statRegions">—</div>
+      <div class="stat-lbl">REGIONS</div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">PUBLIC LIVE FEED</div>
+    <h1 class="hero-title">CivicGuard — <strong>Community Dashboard</strong></h1>
+    <p class="hero-sub">Real-time civic issues reported from local networks across India. All data is live and publicly readable.</p>
+    <div class="hero-actions">
+      <a class="hero-btn-primary" href="/authority">
+        ⚖ Enter Authority Portal
+      </a>
+      <a class="hero-btn-secondary" href="#issuesSection">↓ View Issues</a>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- Authority Portal Promo -->
+    <div class="promo-card">
+      <div class="promo-top">
+        <div class="promo-chip">FOR OFFICIALS</div>
+      </div>
+      <div class="promo-title">Authority Portal</div>
+      <div class="promo-desc">Government officials and department heads can log in to review, action, and close civic issues. Requires an authority invite code from your department admin.</div>
+      <div class="promo-features">
+        <div class="promo-feature">Interactive map view</div>
+        <div class="promo-feature">Resolve & close issues</div>
+        <div class="promo-feature">Real-time updates</div>
+        <div class="promo-feature">Filter by region & status</div>
+      </div>
+      <a class="promo-cta" href="/authority">⚖ Open Authority Portal →</a>
+    </div>
+
+    <!-- Issues Section -->
+    <div id="issuesSection">
+      <div class="section-header">
+        <div class="section-title">
+          Live Issues
+          <span class="count-badge" id="countBadge">0</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="roomFilter" onchange="filterIssues()">
+            <option value="">ALL ROOMS</option>
+          </select>
+          <select id="statusFilter" onchange="filterIssues()">
+            <option value="">ALL STATUS</option>
+            <option value="OPEN">🔴 OPEN</option>
+            <option value="UNDER_APPROVAL">🟡 UNDER APPROVAL</option>
+            <option value="CLOSED">🟢 CLOSED</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="filter-bar">
+        <button class="filter-btn active" id="f-all" onclick="setFilter('all')">All <span class="filter-count" id="fc-all">0</span></button>
+        <button class="filter-btn" id="f-open" onclick="setFilter('OPEN')">🔴 Open <span class="filter-count" id="fc-open">0</span></button>
+        <button class="filter-btn" id="f-approval" onclick="setFilter('UNDER_APPROVAL')">🟡 Approval <span class="filter-count" id="fc-approval">0</span></button>
+        <button class="filter-btn" id="f-closed" onclick="setFilter('CLOSED')">🟢 Resolved <span class="filter-count" id="fc-closed">0</span></button>
+      </div>
+
+      <div class="issue-grid" id="issueGrid">
+        <div class="skel-card skel"></div>
+        <div class="skel-card skel"></div>
+        <div class="skel-card skel"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  const CLOUD_URL = window.location.origin;
+  const WS_URL = CLOUD_URL.replace(/^https/, 'wss').replace(/^http/, 'ws');
+
+  const CAT_ICONS = {INFRASTRUCTURE:'🔧',SANITATION:'🗑️',UTILITIES:'⚡',WELFARE:'🤝',SAFETY:'🛡️',OTHER:'📌'};
+  let allIssues = [];
+  let activeStatusFilter = 'all';
+
+  // ── BOOT ───────────────────────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    loadIssues();
+    connectWS();
+  });
+
+  async function loadIssues() {
+    try {
+      const r = await fetch(CLOUD_URL + '/api/issues');
+      if (!r.ok) throw new Error();
+      const { issues } = await r.json();
+      allIssues = issues || [];
+      renderAll();
+      populateRoomFilter();
+    } catch {
+      document.getElementById('issueGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">⚠</div><div class="empty-title">COULD NOT LOAD ISSUES</div><div class="empty-sub">Cloud server may be offline.</div></div>';
+    }
+  }
+
+  function renderAll() {
+    updateStats();
+    filterIssues();
+  }
+
+  function updateStats() {
+    const open     = allIssues.filter(i => i.status === 'OPEN').length;
+    const approval = allIssues.filter(i => i.status === 'UNDER_APPROVAL').length;
+    const closed   = allIssues.filter(i => ['CLOSED','RESOLVED'].includes(i.status)).length;
+    const regions  = new Set(allIssues.map(i => i.region).filter(Boolean)).size;
+    document.getElementById('statTotal').textContent    = allIssues.length || '—';
+    document.getElementById('statOpen').textContent     = open || '—';
+    document.getElementById('statApproval').textContent = approval || '—';
+    document.getElementById('statClosed').textContent   = closed || '—';
+    document.getElementById('statRegions').textContent  = regions || '—';
+    document.getElementById('fc-all').textContent      = allIssues.length;
+    document.getElementById('fc-open').textContent     = open;
+    document.getElementById('fc-approval').textContent = approval;
+    document.getElementById('fc-closed').textContent   = closed;
+  }
+
+  function setFilter(f) {
+    activeStatusFilter = f;
+    ['all','open','approval','closed'].forEach(k => {
+      const btn = document.getElementById('f-' + k);
+      btn.className = 'filter-btn';
+      const map = {all:'all',open:'OPEN',approval:'UNDER_APPROVAL',closed:'CLOSED'};
+      if (f === map[k]) {
+        btn.className = f === 'all' ? 'filter-btn active' : f === 'OPEN' ? 'filter-btn active-open' : f === 'UNDER_APPROVAL' ? 'filter-btn active-amber' : 'filter-btn active-green';
+      }
+    });
+    filterIssues();
+  }
+
+  function filterIssues() {
+    const room = document.getElementById('roomFilter').value;
+    let filtered = allIssues;
+    if (activeStatusFilter !== 'all') filtered = filtered.filter(i => i.status === activeStatusFilter);
+    if (room) filtered = filtered.filter(i => i.room === room);
+    renderIssues(filtered);
+  }
+
+  function populateRoomFilter() {
+    const rooms = [...new Set(allIssues.map(i => i.room))].sort();
+    const sel = document.getElementById('roomFilter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">ALL ROOMS</option>';
+    rooms.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r; o.textContent = r;
+      sel.appendChild(o);
+    });
+    if (cur) sel.value = cur;
+  }
+
+  function renderIssues(issues) {
+    const grid = document.getElementById('issueGrid');
+    document.getElementById('countBadge').textContent = issues.length;
+    if (!issues.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">📋</div><div class="empty-title">NO ISSUES</div><div class="empty-sub">No issues match the current filter.</div></div>';
+      return;
+    }
+    grid.innerHTML = issues.map(i => `
+      <div class="issue-card">
+        <div class="ic-top">
+          <div class="ic-title">${CAT_ICONS[i.category]||'📌'} ${esc(i.title)}</div>
+          <div class="status-badge badge-${i.status}">${i.status.replace('_',' ')}</div>
+        </div>
+        ${i.description ? `<div class="ic-desc">${esc(i.description)}</div>` : ''}
+        <div class="ic-region"><span>📍</span> ${esc(i.region || 'Unknown region')}</div>
+        <div class="ic-meta">
+          <span class="ic-meta-item">ROOM <span>${esc(i.room)}</span></span>
+          <span class="ic-meta-item">BY <span>${esc(i.user_name)}</span></span>
+          <span class="ic-meta-item">AGO <span>${timeAgo(i.created_at)}</span></span>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── WS ─────────────────────────────────────────────────────────────────────
+  function connectWS() {
+    const ws = new WebSocket(WS_URL);
+    ws.onopen = () => { document.getElementById('wsLabel').textContent = 'LIVE'; };
+    ws.onclose = () => { document.getElementById('wsLabel').textContent = 'RECONNECTING'; setTimeout(connectWS, 5000); };
+    ws.onerror = () => {};
+    ws.onmessage = e => {
+      let msg; try { msg = JSON.parse(e.data); } catch { return; }
+      if (msg.type === 'new_issue' && msg.issue) {
+        if (!allIssues.find(i => i.id === msg.issue.id)) {
+          allIssues.unshift(msg.issue);
+          renderAll();
+          populateRoomFilter();
+        }
+      }
+      if (msg.type === 'issue_resolved' && msg.issueId) {
+        const idx = allIssues.findIndex(i => i.id === msg.issueId);
+        if (idx !== -1) { allIssues[idx] = { ...allIssues[idx], status: msg.status || 'UNDER_APPROVAL', ...(msg.issue||{}) }; renderAll(); }
+      }
+      if (msg.type === 'issue_vote_update' && msg.issueId) {
+        const idx = allIssues.findIndex(i => String(i.id) === String(msg.issueId));
+        if (idx !== -1) {
+          allIssues[idx] = { ...allIssues[idx],
+            approvals_count: msg.approvals_count,
+            rejections_count: msg.rejections_count,
+            total_votes: msg.total_votes,
+            approval_percentage: msg.approval_percentage,
+          };
+          renderAll();
+        }
+      }
+      if (msg.type === 'issue_closed' && msg.issueId) {
+        const idx = allIssues.findIndex(i => String(i.id) === String(msg.issueId));
+        if (idx !== -1) { allIssues[idx] = { ...allIssues[idx], status: 'CLOSED' }; renderAll(); }
+      }
+    };
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function timeAgo(ts) {
+    const s = Math.floor(Date.now()/1000) - Math.floor(Number(ts)/1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s/60) + 'm ago';
+    if (s < 86400) return Math.floor(s/3600) + 'h ago';
+    return Math.floor(s/86400) + 'd ago';
+  }
+  </script>
+  </body>
+  </html>
